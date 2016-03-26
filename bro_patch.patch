@@ -1,6 +1,6 @@
 diff -r -c bro/aux/plugins/elasticsearch/src/ElasticSearch.cc bro_patched/aux/plugins/elasticsearch/src/ElasticSearch.cc
 *** bro/aux/plugins/elasticsearch/src/ElasticSearch.cc	2016-03-26 13:12:29.685762503 -0600
---- bro_patched/aux/plugins/elasticsearch/src/ElasticSearch.cc	2016-03-26 14:15:22.932767935 -0600
+--- bro_patched/aux/plugins/elasticsearch/src/ElasticSearch.cc	2016-03-26 17:31:20.180557385 -0600
 ***************
 *** 63,69 ****
   
@@ -38,7 +38,7 @@ diff -r -c bro/aux/plugins/elasticsearch/src/ElasticSearch.cc bro_patched/aux/pl
   	// ElasticSearches bulk command requires the command
   	// and the record to be indexed on two separate lines
 ***************
-*** 143,151 ****
+*** 143,154 ****
   		buffer.AddRaw("\n", 1);
   
   	buffer.AddRaw("{", 1);
@@ -46,9 +46,22 @@ diff -r -c bro/aux/plugins/elasticsearch/src/ElasticSearch.cc bro_patched/aux/pl
 - 	buffer.Add((uint64) (network_time * 1000));
 - 	buffer.AddRaw(",", 1);
   	json->Describe(&buffer, num_fields, fields, vals);
+! 
+! 	buffer.AddRaw("}\n", 2);
   
-  	buffer.AddRaw("}\n", 2);
---- 141,146 ----
+  	counter++;
+  	if ( counter >= BifConst::LogElasticSearch::max_batch_size ||
+--- 141,150 ----
+  		buffer.AddRaw("\n", 1);
+  
+  	buffer.AddRaw("{", 1);
+  	json->Describe(&buffer, num_fields, fields, vals);
+! 	buffer.AddRaw(",\"log_source\":\"",15);
+! 	buffer.Add(Info().path);
+! 	buffer.AddRaw("\"}\n", 3);
+  
+  	counter++;
+  	if ( counter >= BifConst::LogElasticSearch::max_batch_size ||
 ***************
 *** 217,223 ****
   bool ElasticSearch::DoRotate(const char* rotated_path, double open, double close, bool terminating)
@@ -58,7 +71,7 @@ diff -r -c bro/aux/plugins/elasticsearch/src/ElasticSearch.cc bro_patched/aux/pl
   
   	// Only do this stuff if there was a previous index.
   	if ( ! prev_index.empty() )
---- 212,218 ----
+--- 213,219 ----
   bool ElasticSearch::DoRotate(const char* rotated_path, double open, double close, bool terminating)
   	{
   	// Update the currently used index to the new rotation interval.
