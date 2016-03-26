@@ -1,0 +1,119 @@
+diff -r -c bro/aux/plugins/elasticsearch/src/ElasticSearch.cc bro_patched/aux/plugins/elasticsearch/src/ElasticSearch.cc
+*** bro/aux/plugins/elasticsearch/src/ElasticSearch.cc	2016-03-26 13:12:29.685762503 -0600
+--- bro_patched/aux/plugins/elasticsearch/src/ElasticSearch.cc	2016-03-26 14:15:22.932767935 -0600
+***************
+*** 63,69 ****
+  
+  	curl_handle = HTTPSetup();
+  
+! 	json = new threading::formatter::JSON(this, threading::formatter::JSON::TS_MILLIS);
+  	json->SurroundingBraces(false);
+  }
+  
+--- 63,69 ----
+  
+  	curl_handle = HTTPSetup();
+  
+! 	json = new threading::formatter::JSON(this, threading::formatter::JSON::TS_ISO8601);
+  	json->SurroundingBraces(false);
+  }
+  
+***************
+*** 131,139 ****
+  
+  	buffer.AddRaw("{\"index\":{\"_index\":\"", 20);
+  	buffer.Add(current_index);
+! 	buffer.AddRaw("\",\"_type\":\"", 11);
+! 	buffer.Add(Info().path);
+! 	buffer.AddRaw("\"}}", 3);
+  
+  	// ElasticSearches bulk command requires the command
+  	// and the record to be indexed on two separate lines
+--- 131,137 ----
+  
+  	buffer.AddRaw("{\"index\":{\"_index\":\"", 20);
+  	buffer.Add(current_index);
+! 	buffer.AddRaw("\",\"_type\":\"logs\"}}", 18);
+  
+  	// ElasticSearches bulk command requires the command
+  	// and the record to be indexed on two separate lines
+***************
+*** 143,151 ****
+  		buffer.AddRaw("\n", 1);
+  
+  	buffer.AddRaw("{", 1);
+- 	buffer.AddRaw("\"_timestamp\":", 13);
+- 	buffer.Add((uint64) (network_time * 1000));
+- 	buffer.AddRaw(",", 1);
+  	json->Describe(&buffer, num_fields, fields, vals);
+  
+  	buffer.AddRaw("}\n", 2);
+--- 141,146 ----
+***************
+*** 217,223 ****
+  bool ElasticSearch::DoRotate(const char* rotated_path, double open, double close, bool terminating)
+  	{
+  	// Update the currently used index to the new rotation interval.
+! 	UpdateIndex(close, Info().rotation_interval, Info().rotation_base);
+  
+  	// Only do this stuff if there was a previous index.
+  	if ( ! prev_index.empty() )
+--- 212,218 ----
+  bool ElasticSearch::DoRotate(const char* rotated_path, double open, double close, bool terminating)
+  	{
+  	// Update the currently used index to the new rotation interval.
+! 	// UpdateIndex(close, Info().rotation_interval, Info().rotation_base);
+  
+  	// Only do this stuff if there was a previous index.
+  	if ( ! prev_index.empty() )
+diff -r -c bro/src/threading/formatters/JSON.cc bro_patched/src/threading/formatters/JSON.cc
+*** bro/src/threading/formatters/JSON.cc	2016-03-26 13:11:36.917763448 -0600
+--- bro_patched/src/threading/formatters/JSON.cc	2016-03-26 14:04:56.756779149 -0600
+***************
+*** 42,48 ****
+  		     bytes[len-1] != '[' &&
+  		     vals[i]->present )
+  			desc->AddRaw(",");
+- 
+  		if ( ! Describe(desc, vals[i], fields[i]->name) )
+  			return false;
+  		}
+--- 42,47 ----
+***************
+*** 61,67 ****
+  	if ( name.size() )
+  		{
+  		desc->AddRaw("\"", 1);
+! 		desc->Add(name);
+  		desc->AddRaw("\":", 2);
+  		}
+  
+--- 60,67 ----
+  	if ( name.size() )
+  		{
+  		desc->AddRaw("\"", 1);
+! 		string writename = strreplace(name, ".", "_");
+! 		desc->Add(writename);
+  		desc->AddRaw("\":", 2);
+  		}
+  
+diff -r -c bro/src/threading/formatters/JSON.h bro_patched/src/threading/formatters/JSON.h
+*** bro/src/threading/formatters/JSON.h	2016-03-26 13:11:36.917763448 -0600
+--- bro_patched/src/threading/formatters/JSON.h	2016-03-26 14:05:08.744778934 -0600
+***************
+*** 4,10 ****
+  #define THREADING_FORMATTERS_JSON_H
+  
+  #include "../Formatter.h"
+! 
+  namespace threading { namespace formatter {
+  
+  /**
+--- 4,10 ----
+  #define THREADING_FORMATTERS_JSON_H
+  
+  #include "../Formatter.h"
+! #include "util.h"
+  namespace threading { namespace formatter {
+  
+  /**
