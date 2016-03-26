@@ -34,7 +34,6 @@ class ESServer(object):
 		return response
 
 	def get_data( self, customer, doc_type, fields, constraints, ignore, scroll_id, scroll_len, sort = ""):
-
 		# If this is the first call, build a query
 		if scroll_id == "":
 			# make a query
@@ -98,11 +97,12 @@ class ESServer(object):
 			for h in hits:
 				query = query + '{ "delete" : { "_index" : "' + customer + '", "_type" : "' + 'results' + '", "_id" : "' + str(h['_id']) + '" } }\n'
 			
+			if len(hits) < 1:
+				scrolling = False
+			
 			# print query
 			try:
 				self.es.bulk(query)
 			except:
 				continue
 
-			if len(hits) < 1:
-				scrolling = False
